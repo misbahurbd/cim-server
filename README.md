@@ -2,6 +2,13 @@
 
 Welcome to the Computer Item Management System.
 
+**Live Site:** https://cim-client-a6.vercel.app/
+
+**User Credentials:**
+
+Username: `jamilsyl@gmail.com`
+Password: `Pass@000@`
+
 ## Installation
 
 ### 1. Clone the repository:
