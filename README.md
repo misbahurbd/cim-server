@@ -1,8 +1,8 @@
-# Computer Item Management System - Assignment - B2 - 06 - MisbahurBD
+# Computer Item Management System
 
 Welcome to the Computer Item Management System.
 
-**Live Site:** https://cim-client-a6.vercel.app/
+**Live Site:** https://cim-client.vercel.app/
 
 **User Credentials:**
 
