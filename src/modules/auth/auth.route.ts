@@ -19,6 +19,20 @@ router.post(
   authController.loginUser,
 );
 
+// forget user password
+router.post(
+  '/forget-password',
+  validateRequest(authValidation.forgetPasswordSchema),
+  authController.forgetPassword,
+);
+
+// forget user password
+router.post(
+  '/reset-password/:token',
+  validateRequest(authValidation.resetPasswordSchema),
+  authController.resetPassword,
+);
+
 // refresh token
 router.get('/refresh-token', authController.refreshToken);
 

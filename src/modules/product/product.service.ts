@@ -4,16 +4,21 @@ import config from '../../config';
 import { Product } from './product.model';
 import { IProduct } from './product.interface';
 import {
+  fillingMissingDay,
   getFilterPipeline,
   getLookupStage,
   getMatchStage,
   getUnwindStage,
+  mergeByDay,
 } from '../../utils';
-import mongoose from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import { JwtPayload } from 'jsonwebtoken';
 import httpStatus from 'http-status';
 import { AppError } from '../../errors/appError';
 import { Order } from '../order/order.model';
+import { differenceInDays, subDays } from 'date-fns';
+import { User } from '../user/user.model';
+import { Request } from '../request/request.model';
 
 // upload product image
 const uploadImage = async (imageSrc: string) => {
@@ -342,6 +347,175 @@ const getTopSellingProducts = async () => {
   return topSellingProducts;
 };
 
+// get overview data
+const overviewData = async (userId: string, query: any) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new AppError(httpStatus.UNAUTHORIZED, 'You are not authorized', null);
+  }
+
+  const fatchOverviewData = async (
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+  ) => {
+    const matchCondition =
+      user.role == 'buyer'
+        ? {
+            customerEmail: user.email,
+            orderAt: {
+              $gte: startDate.toISOString(),
+              $lte: endDate.toISOString(),
+            },
+          }
+        : {
+            seller: new Types.ObjectId(userId),
+            orderAt: {
+              $gte: startDate.toISOString(),
+              $lte: endDate.toISOString(),
+            },
+          };
+
+    const pipeline = [
+      {
+        $match: matchCondition,
+      },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: '$totalPrice' },
+          totalProductsSold: { $sum: '$quantity' },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          totalRevenue: 1,
+          totalProductsSold: 1,
+        },
+      },
+    ];
+
+    // Execute the aggregation
+    const [result] = await Order.aggregate(pipeline).exec();
+
+    const condition =
+      user.role === 'seller'
+        ? {
+            updatedAt: {
+              $gte: startDate.toISOString(),
+              $lte: endDate.toISOString(),
+            },
+            status: 'solved',
+            provider: new Types.ObjectId(userId),
+          }
+        : {
+            createdAt: {
+              $gte: startDate.toISOString(),
+              $lte: endDate.toISOString(),
+            },
+            requestFrom: new Types.ObjectId(userId),
+          };
+    const requestCount = await Request.countDocuments(condition).exec();
+
+    return {
+      revenue: result?.totalRevenue || 0,
+      productSold: result?.totalProductsSold || 0,
+      request: requestCount || 0,
+    };
+  };
+
+  const range =
+    query?.range === 'weekly'
+      ? 7
+      : query?.range === 'monthly'
+        ? 30
+        : query?.range === '90-day'
+          ? 90
+          : query?.range === 'yearly'
+            ? 365
+            : 90;
+
+  const startDate = subDays(new Date(), range);
+  const endDate = new Date();
+
+  const periodLength = differenceInDays(endDate, startDate) + 1;
+  const lastPeriodStart = subDays(startDate, periodLength);
+  const lastPeriodEnd = subDays(endDate, periodLength);
+
+  const currentPeriod = await fatchOverviewData(userId, startDate, endDate);
+  const lastPeriod = await fatchOverviewData(
+    userId,
+    lastPeriodStart,
+    lastPeriodEnd,
+  );
+
+  const chartMatcher =
+    user.role === 'seller'
+      ? {
+          seller: new Types.ObjectId(userId),
+        }
+      : {
+          customerEmail: user.email,
+        };
+
+  const orderCount = await Order.aggregate([
+    {
+      $match: chartMatcher,
+    },
+    {
+      $match: {
+        orderAt: {
+          $gte: startDate.toISOString(),
+          $lte: endDate.toISOString(),
+        },
+      },
+    },
+    {
+      $group: {
+        _id: '$orderAt', // Group by the order date
+        totalProductsSold: { $sum: '$quantity' }, // Sum the quantities sold per day
+      },
+    },
+    {
+      $sort: { _id: 1 }, // Sort by date in ascending order
+    },
+  ]).exec();
+
+  const orderChart = orderCount.map((order) => ({
+    date: order._id,
+    sold: order.totalProductsSold,
+  }));
+
+  const formatedOrderChart = mergeByDay(orderChart);
+
+  const chartData = fillingMissingDay(formatedOrderChart, startDate, endDate);
+
+  const productCondtion =
+    user.role === 'seller'
+      ? {
+          createdBy: new Types.ObjectId(userId),
+          quantity: { $gte: 0 },
+          isDeleted: false,
+        }
+      : {
+          quantity: { $gte: 0 },
+          isDeleted: false,
+        };
+  const product = await Product.countDocuments(productCondtion);
+
+  return {
+    currentPeriod,
+    lastPeriod,
+    chartData,
+    product,
+    period: {
+      startDate,
+      endDate,
+    },
+  };
+};
+
 export const productService = {
   uploadImage,
   addProduct,
@@ -353,4 +527,5 @@ export const productService = {
   updateProduct,
   getProduct,
   getProducts,
+  overviewData,
 };

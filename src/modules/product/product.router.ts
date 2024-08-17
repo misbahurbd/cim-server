@@ -1,7 +1,7 @@
+import { checkAuth } from './../../middlewares/checkAuth';
 import express from 'express';
 import { upload } from '../../utils/multer';
 import { productController } from './product.controller';
-import { checkAuth } from '../../middlewares/checkAuth';
 import { validateRequest } from '../../middlewares/validateRequest';
 import { productValidation } from './product.validation';
 
@@ -10,7 +10,7 @@ const router = express.Router();
 // upload product image
 router.post(
   '/upload',
-  checkAuth('seller'),
+  checkAuth(),
   upload.single('image'),
   productController.uploadImage,
 );
@@ -32,6 +32,9 @@ router.get(
   checkAuth('buyer'),
   productController.getTopSellingProducts,
 );
+
+// overview data
+router.get('/overview', checkAuth(), productController.overviewData);
 
 // get single product
 router.get('/:id', checkAuth(), productController.getProduct);
@@ -60,6 +63,7 @@ router.put(
   productController.updateProduct,
 );
 
+// delete product
 router.delete('/:id', checkAuth('seller'), productController.deleteProduct);
 
 export const productRouter = router;

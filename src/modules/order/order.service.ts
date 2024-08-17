@@ -137,40 +137,11 @@ const orderHistory = async ({
   const limit = parseInt(query.limit) || 6;
   const skip = (page - 1) * limit;
 
-  let dateFilter = {};
-
-  if (query.dateRange) {
-    const currentDate = new Date();
-    switch (query.dateRange) {
-      case 'weekly':
-        currentDate.setDate(currentDate.getDate() - 7);
-        break;
-      case 'daily':
-        currentDate.setDate(currentDate.getDate() - 1);
-        break;
-      case 'monthly':
-        currentDate.setMonth(currentDate.getMonth() - 1);
-        break;
-      case 'yearly':
-        currentDate.setFullYear(currentDate.getFullYear() - 1);
-        break;
-      default:
-        break;
-    }
-
-    dateFilter = {
-      orderAt: { $gte: currentDate.toISOString() },
-    };
-  }
-
   const orders = await Order.aggregate([
     {
       $match: {
         seller: new mongoose.mongo.ObjectId(userId),
       },
-    },
-    {
-      $match: dateFilter,
     },
     {
       $sort: {
@@ -228,40 +199,11 @@ const buyerOrderHistory = async ({
   const limit = parseInt(query.limit) || 6;
   const skip = (page - 1) * limit;
 
-  let dateFilter = {};
-
-  if (query.dateRange) {
-    const currentDate = new Date();
-    switch (query.dateRange) {
-      case 'weekly':
-        currentDate.setDate(currentDate.getDate() - 7);
-        break;
-      case 'daily':
-        currentDate.setDate(currentDate.getDate() - 1);
-        break;
-      case 'monthly':
-        currentDate.setMonth(currentDate.getMonth() - 1);
-        break;
-      case 'yearly':
-        currentDate.setFullYear(currentDate.getFullYear() - 1);
-        break;
-      default:
-        break;
-    }
-
-    dateFilter = {
-      orderAt: { $gte: currentDate.toISOString() },
-    };
-  }
-
   const pipeline = [
     {
       $match: {
         customerEmail: currentUser?.email,
       },
-    },
-    {
-      $match: dateFilter,
     },
   ];
 

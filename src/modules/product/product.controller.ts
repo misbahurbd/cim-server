@@ -168,6 +168,26 @@ const getTopSellingProducts = catchAsync(
   },
 );
 
+const overviewData = catchAsync(async (req: Request, res: Response) => {
+  const currentUser = req.user;
+  if (!currentUser || !currentUser.id) {
+    throw new AppError(
+      httpStatus.UNAUTHORIZED,
+      'Please login your account',
+      null,
+    );
+  }
+
+
+  const result = await productService.overviewData(currentUser.id, req.query);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: 'Overview data retrive successfully!',
+    data: result,
+  });
+});
+
 export const productController = {
   uploadImage,
   addProduct,
@@ -179,4 +199,5 @@ export const productController = {
   updateProduct,
   getProduct,
   getProducts,
+  overviewData,
 };

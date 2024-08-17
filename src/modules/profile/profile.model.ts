@@ -1,8 +1,7 @@
-import { Schema, model } from 'mongoose';
-import { IUser } from './user.interface';
-import { USER_ROLE } from './user.constants';
+import { model, Schema } from 'mongoose';
+import { IProfile } from './profile.interface';
 
-const userSchema = new Schema<IUser>(
+const profileSchema = new Schema<IProfile>(
   {
     name: {
       type: String,
@@ -10,14 +9,16 @@ const userSchema = new Schema<IUser>(
     },
     email: {
       type: String,
-      unique: true,
       required: true,
     },
-    phone: {
+    profilePhoto: {
       type: String,
-      unique: true,
+      require: true,
     },
-    stateAddress: {
+    mobile: {
+      type: String,
+    },
+    address: {
       type: String,
     },
     city: {
@@ -25,15 +26,10 @@ const userSchema = new Schema<IUser>(
     },
     country: {
       type: String,
-      required: true,
     },
-    hashedPassword: {
-      type: String,
-      required: true,
-    },
-    role: {
-      type: String,
-      enum: Object.values(USER_ROLE),
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
       required: true,
     },
   },
@@ -49,4 +45,4 @@ const userSchema = new Schema<IUser>(
   },
 );
 
-export const User = model<IUser>('User', userSchema);
+export const Profile = model<IProfile>('Profile', profileSchema);

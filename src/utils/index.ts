@@ -2,6 +2,7 @@
 import { NextFunction, Request, RequestHandler, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { Payload } from '../interfaces';
+import { eachDayOfInterval, format, isSameDay } from 'date-fns';
 
 // global response sender
 export const sendResponse = <T, M>(
@@ -107,3 +108,65 @@ export const getUnwindStage = (field: string) => ({
 export const getMatchStage = (filter: any) => ({ $match: filter });
 export const getSkipStage = (skip: number) => ({ $skip: skip });
 export const getLimitStage = (limit: number) => ({ $limit: limit });
+
+export const fillingMissingDay = (
+  chartData: {
+    date: string;
+    sold: number;
+  }[],
+  startDate: Date,
+  endDate: Date,
+) => {
+  if (chartData.length === 0) return [];
+
+  const allDays = eachDayOfInterval({
+    start: startDate,
+    end: endDate,
+  });
+
+  const chart = allDays.map((day) => {
+    const found = chartData.find((d) => isSameDay(d.date, day));
+
+    if (found) {
+      return {
+        date: day,
+        sold: found.sold,
+      };
+    } else {
+      return {
+        date: day,
+        sold: 0,
+      };
+    }
+  });
+
+  return chart;
+};
+
+export const mergeByDay = (
+  data: {
+    date: Date;
+    sold: number;
+  }[],
+) => {
+  return data.reduce<
+    {
+      date: string;
+      sold: number;
+    }[]
+  >((acc, current) => {
+    const currentDay = format(current.date, 'yyyy-MM-dd');
+
+    const existingEntry = acc.find((item) =>
+      isSameDay(item.date, current.date),
+    );
+
+    if (existingEntry) {
+      existingEntry.sold += current.sold;
+    } else {
+      acc.push({ date: currentDay, sold: current.sold });
+    }
+
+    return acc;
+  }, []);
+};

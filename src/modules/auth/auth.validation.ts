@@ -54,7 +54,33 @@ const loginUserSchema = z.object({
   }),
 });
 
+const forgetPasswordSchema = z.object({
+  email: z
+    .string({
+      required_error: 'email is required',
+    })
+    .email({
+      message: 'Invalid email address',
+    }),
+});
+
+const resetPasswordSchema = z.object({
+  password: z
+    .string({
+      required_error: 'Password is required',
+      invalid_type_error: 'Password is not valid',
+    })
+    .min(8, { message: 'Password must be at least 8 characters' })
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/gm, {
+      message:
+        'Password must contain at least one lowercase, one uppercase, and one digit',
+    }),
+  confirmPassword: z.string().min(1, 'Confirm password is requried'),
+});
+
 export const authValidation = {
   registerUserSchema,
   loginUserSchema,
+  forgetPasswordSchema,
+  resetPasswordSchema,
 };

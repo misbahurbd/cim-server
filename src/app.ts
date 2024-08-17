@@ -15,7 +15,11 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: ['http://localhost:5173', 'https://cim-client-a6.vercel.app'],
+    origin: [
+      'http://localhost:5173',
+      'https://cim-client-a6.vercel.app',
+      'https://cim-client.vercel.app',
+    ],
     credentials: true,
   }),
 );
